@@ -1049,12 +1049,12 @@
   });
 
   /* ===== GÜNCEL HABER AKIŞI =====
-     Canlı kaynak: Cumhuriyet'in Ekonomi ve Siyaset RSS kategorileri, anahtarsız
-     bir RSS->JSON proxy'si (rss2json.com) üzerinden okunup tarihe göre
-     karıştırılıyor. Bu servis anahtarsız kullanımda paylaşımlı bir kotaya
-     sahiptir; sık veya yoğun trafikte geçici olarak yanıt vermeyebilir.
-     Böyle bir durumda sahte başlıklar göstermek yerine açık bir hata
-     mesajı gösterilir. */
+     Canlı kaynak: Cumhuriyet'in Ekonomi ve Siyaset RSS kategorileri.
+     Statik bir HTML dosyası kendi sunucusu olmadığı için bu feed'leri
+     tarayıcıdan okumak için iki farklı ücretsiz CORS proxy'si aynı anda
+     denenir (allorigins.win ve rss2json.com); hangisi önce yanıt verirse
+     o kullanılır. İkisi de erişilemezse sahte/örnek başlık göstermek
+     yerine açık bir hata mesajı gösterilir. */
   const NEWS_FEEDS = [
     { url: 'https://www.cumhuriyet.com.tr/rss/ekonomi', label: 'Ekonomi' },
     { url: 'https://www.cumhuriyet.com.tr/rss/siyaset', label: 'Siyaset' }
@@ -1068,12 +1068,69 @@
 
   function timeAgo(dateStr) {
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '—';
+    if (isNaN(d.getTime())) return '\u2014';
     const diffMin = Math.max(1, Math.round((Date.now() - d.getTime()) / 60000));
-    if (diffMin < 60) return diffMin + ' dk önce';
+    if (diffMin < 60) return diffMin + ' dk \u00f6nce';
     const diffH = Math.round(diffMin / 60);
-    if (diffH < 24) return diffH + ' sa önce';
-    return Math.round(diffH / 24) + ' gün önce';
+    if (diffH < 24) return diffH + ' sa \u00f6nce';
+    return Math.round(diffH / 24) + ' g\u00fcn \u00f6nce';
+  }
+
+  function fetchWithTimeout(url, ms) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id));
+  }
+
+  async function fetchViaRss2json(feed) {
+    const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url) + '&count=8';
+    const res = await fetchWithTimeout(proxyUrl, 8000);
+    if (!res.ok) throw new Error('rss2json http ' + res.status);
+    const data = await res.json();
+    if (data.status !== 'ok' || !data.items || !data.items.length) throw new Error('rss2json empty');
+    return data.items.map((it) => ({ title: it.title, link: it.link, pubDate: it.pubDate, category: feed.label }));
+  }
+
+  function parseRssXml(text, feed) {
+    const xml = new DOMParser().parseFromString(text, 'application/xml');
+    if (xml.querySelector('parsererror')) throw new Error('xml parse error');
+    const nodes = Array.from(xml.querySelectorAll('item')).slice(0, 8);
+    if (!nodes.length) throw new Error('xml empty');
+    return nodes.map((node) => {
+      const t = node.querySelector('title');
+      const l = node.querySelector('link');
+      const p = node.querySelector('pubDate');
+      return {
+        title: (t && t.textContent || '').trim(),
+        link: (l && l.textContent || '').trim(),
+        pubDate: (p && p.textContent || '').trim(),
+        category: feed.label
+      };
+    }).filter((it) => it.title);
+  }
+
+  async function fetchViaAllOrigins(feed) {
+    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(feed.url);
+    const res = await fetchWithTimeout(proxyUrl, 8000);
+    if (!res.ok) throw new Error('allorigins http ' + res.status);
+    return parseRssXml(await res.text(), feed);
+  }
+
+  async function fetchViaCodeTabs(feed) {
+    const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(feed.url);
+    const res = await fetchWithTimeout(proxyUrl, 8000);
+    if (!res.ok) throw new Error('codetabs http ' + res.status);
+    return parseRssXml(await res.text(), feed);
+  }
+
+  // Üç bağımsız, anahtarsız proxy aynı anda denenir; hangisi önce
+  // başarılı olursa o kullanılır. Üçü de başarısız olursa hata fırlatılır.
+  function fetchFeed(feed) {
+    return Promise.any([
+      fetchViaRss2json(feed),
+      fetchViaAllOrigins(feed),
+      fetchViaCodeTabs(feed)
+    ]);
   }
 
   function renderNews(items) {
@@ -1102,33 +1159,24 @@
     });
 
     liveDot.classList.remove('is-fallback');
-    newsStatusText.textContent = 'Canlı • Ekonomi & Siyaset';
-    newsUpdated.textContent = 'Güncellendi: ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    newsStatusText.textContent = 'Canl\u0131 \u2022 Ekonomi & Siyaset';
+    newsUpdated.textContent = 'G\u00fcncellendi: ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   }
 
   function renderError() {
     newsList.innerHTML = '';
     const li = document.createElement('li');
     li.className = 'news-item news-item--empty';
-    li.textContent = 'Şu anda canlı haberlere erişilemiyor. Birazdan tekrar deneyin.';
+    li.textContent = '\u015eu anda canl\u0131 haberlere eri\u015filemiyor. Birazdan tekrar deneyin.';
     newsList.appendChild(li);
 
     liveDot.classList.add('is-fallback');
-    newsStatusText.textContent = 'Bağlantı kurulamadı';
+    newsStatusText.textContent = 'Ba\u011flant\u0131 kurulamad\u0131';
     newsUpdated.textContent = 'Son deneme: ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   }
 
-  async function fetchFeed(feed) {
-    const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url) + '&count=8';
-    const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error('network');
-    const data = await res.json();
-    if (data.status !== 'ok' || !data.items || !data.items.length) throw new Error('empty');
-    return data.items.map((it) => ({ title: it.title, link: it.link, pubDate: it.pubDate, category: feed.label }));
-  }
-
   async function loadNews() {
-    newsStatusText.textContent = 'Yükleniyor…';
+    newsStatusText.textContent = 'Y\u00fckleniyor\u2026';
     const results = await Promise.allSettled(NEWS_FEEDS.map(fetchFeed));
     let combined = [];
     results.forEach((r) => {
