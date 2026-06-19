@@ -396,6 +396,13 @@
     border-bottom:1px dashed var(--line);
   }
   .news-item:last-child{ border-bottom:none; }
+  .news-item--empty{
+    color:var(--ink-soft);
+    font-style:italic;
+    font-size:0.9rem;
+    justify-content:center;
+    text-align:center;
+  }
   .news-item__time{
     color:var(--gold);
     min-width:64px;
@@ -752,8 +759,8 @@
     <div class="wrap">
       <div class="section__head">
         <div>
-          <p class="eyebrow">Canlı Akış</p>
-          <h2>Günlük Haber Akışı</h2>
+          <p class="eyebrow">Ekonomi & Siyaset</p>
+          <h2>Güncel Haber Akışı</h2>
         </div>
         <button id="newsRefresh" class="btn btn--outline btn--small">Yenile</button>
       </div>
@@ -1041,21 +1048,16 @@
     form.reset();
   });
 
-  /* ===== GÜNLÜK HABER AKIŞI =====
-     Canlı kaynak: Cumhuriyet Ekonomi RSS, anahtarsız bir RSS->JSON proxy'si
-     (rss2json.com) üzerinden okunuyor. Bu servis anahtarsız kullanımda
-     paylaşımlı bir kotaya sahiptir; sık veya yoğun trafikte geçici olarak
-     yanıt vermeyebilir. Böyle bir durumda aşağıdaki örnek başlıklar gösterilir. */
-  const NEWS_FEED_URL = 'https://www.cumhuriyet.com.tr/rss/ekonomi';
-  const NEWS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(NEWS_FEED_URL) + '&count=8';
-  const NEWS_SOURCE_LABEL = 'Cumhuriyet Ekonomi';
-
-  const FALLBACK_NEWS = [
-    { title: 'Örnek başlık: TCMB faiz kararını duyurdu, piyasalar tepki veriyor' },
-    { title: 'Örnek başlık: Dolar/TL kurunda güne nasıl başlandı?' },
-    { title: 'Örnek başlık: Enflasyon verisi beklentilerin üzerinde geldi' },
-    { title: 'Örnek başlık: BIST 100 endeksinde güne yükselişle başlandı' },
-    { title: 'Örnek başlık: Altın fiyatları küresel risk algısıyla hareketlendi' }
+  /* ===== GÜNCEL HABER AKIŞI =====
+     Canlı kaynak: Cumhuriyet'in Ekonomi ve Siyaset RSS kategorileri, anahtarsız
+     bir RSS->JSON proxy'si (rss2json.com) üzerinden okunup tarihe göre
+     karıştırılıyor. Bu servis anahtarsız kullanımda paylaşımlı bir kotaya
+     sahiptir; sık veya yoğun trafikte geçici olarak yanıt vermeyebilir.
+     Böyle bir durumda sahte başlıklar göstermek yerine açık bir hata
+     mesajı gösterilir. */
+  const NEWS_FEEDS = [
+    { url: 'https://www.cumhuriyet.com.tr/rss/ekonomi', label: 'Ekonomi' },
+    { url: 'https://www.cumhuriyet.com.tr/rss/siyaset', label: 'Siyaset' }
   ];
 
   const newsList = document.getElementById('newsList');
@@ -1074,7 +1076,7 @@
     return Math.round(diffH / 24) + ' gün önce';
   }
 
-  function renderNews(items, isLive) {
+  function renderNews(items) {
     newsList.innerHTML = '';
     items.forEach((it) => {
       const li = document.createElement('li');
@@ -1082,7 +1084,7 @@
 
       const time = document.createElement('span');
       time.className = 'news-item__time mono';
-      time.textContent = isLive ? timeAgo(it.pubDate) : '—';
+      time.textContent = timeAgo(it.pubDate);
 
       const a = document.createElement('a');
       a.className = 'news-item__title';
@@ -1093,30 +1095,53 @@
 
       const src = document.createElement('span');
       src.className = 'news-item__source mono';
-      src.textContent = isLive ? NEWS_SOURCE_LABEL : 'Örnek';
+      src.textContent = it.category;
 
       li.append(time, a, src);
       newsList.appendChild(li);
     });
 
-    liveDot.classList.toggle('is-fallback', !isLive);
-    newsStatusText.textContent = isLive
-      ? ('Canlı • ' + NEWS_SOURCE_LABEL)
-      : 'Örnek başlıklar — canlı akışa şu an erişilemiyor';
+    liveDot.classList.remove('is-fallback');
+    newsStatusText.textContent = 'Canlı • Ekonomi & Siyaset';
     newsUpdated.textContent = 'Güncellendi: ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderError() {
+    newsList.innerHTML = '';
+    const li = document.createElement('li');
+    li.className = 'news-item news-item--empty';
+    li.textContent = 'Şu anda canlı haberlere erişilemiyor. Birazdan tekrar deneyin.';
+    newsList.appendChild(li);
+
+    liveDot.classList.add('is-fallback');
+    newsStatusText.textContent = 'Bağlantı kurulamadı';
+    newsUpdated.textContent = 'Son deneme: ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function fetchFeed(feed) {
+    const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url) + '&count=8';
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error('network');
+    const data = await res.json();
+    if (data.status !== 'ok' || !data.items || !data.items.length) throw new Error('empty');
+    return data.items.map((it) => ({ title: it.title, link: it.link, pubDate: it.pubDate, category: feed.label }));
   }
 
   async function loadNews() {
     newsStatusText.textContent = 'Yükleniyor…';
-    try {
-      const res = await fetch(NEWS_PROXY);
-      if (!res.ok) throw new Error('network');
-      const data = await res.json();
-      if (data.status !== 'ok' || !data.items || !data.items.length) throw new Error('empty');
-      renderNews(data.items.slice(0, 7), true);
-    } catch (err) {
-      renderNews(FALLBACK_NEWS, false);
+    const results = await Promise.allSettled(NEWS_FEEDS.map(fetchFeed));
+    let combined = [];
+    results.forEach((r) => {
+      if (r.status === 'fulfilled') combined = combined.concat(r.value);
+    });
+
+    if (!combined.length) {
+      renderError();
+      return;
     }
+
+    combined.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    renderNews(combined.slice(0, 8));
   }
 
   newsRefresh.addEventListener('click', loadNews);
