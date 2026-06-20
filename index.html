@@ -642,6 +642,35 @@
     .newsletter form{ min-width:100%; }
   }
 
+  .signup{ min-width:340px; }
+  .signup__hint{
+    color:rgba(247,241,228,0.78);
+    font-size:0.9rem;
+    margin-bottom:14px;
+  }
+  .signup__hint span{ color:var(--gold-light); font-weight:600; }
+  #signupCode{ letter-spacing:0.4em; }
+  .signup__resend{
+    background:none;
+    border:none;
+    color:rgba(247,241,228,0.65);
+    font-size:0.82rem;
+    text-decoration:underline;
+    cursor:pointer;
+    margin-top:12px;
+    padding:0;
+  }
+  .signup__resend:disabled{ opacity:0.4; cursor:default; text-decoration:none; }
+  .signup__success{
+    color:var(--gold-light);
+    font-family:'Fraunces',serif;
+    font-size:1.15rem;
+    font-weight:600;
+  }
+  @media (max-width:780px){
+    .signup{ min-width:100%; }
+  }
+
   /* ===== FOOTER ===== */
   footer{
     background:var(--emerald-darker);
@@ -695,7 +724,89 @@
     .hero__inner{ grid-template-columns:1fr; }
     .about__quote{ font-size:1.12rem; }
   }
+
+  /* ===== CANLI VERİ TERMİNALİ ===== */
+  .terminal{
+    --term-bg:#0A0F0B;
+    --term-line:rgba(201,242,216,0.12);
+    --term-fg:#D7F5E3;
+    --term-dim:rgba(215,245,227,0.55);
+    --term-accent:#E8C468;
+    --term-up:#5FD98C;
+    --term-down:#FF7A7A;
+    background:var(--term-bg);
+    border-radius:6px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    font-family:'JetBrains Mono',monospace;
+  }
+  .terminal__bar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 18px;
+    background:#111712;
+    border-bottom:1px solid var(--term-line);
+  }
+  .terminal__dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .terminal__dot--r{ background:#FF6B6B; }
+  .terminal__dot--y{ background:#E8C468; }
+  .terminal__dot--g{ background:#5FD98C; }
+  .terminal__path{
+    margin-left:12px;
+    color:var(--term-dim);
+    font-size:0.82rem;
+  }
+  .terminal__cursor{
+    color:var(--term-accent);
+    animation:pulse-dot 1.1s steps(1) infinite;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .terminal__cursor{ animation:none; }
+  }
+  .terminal__body{ padding:8px 18px 4px; }
+  .terminal__row{
+    display:grid;
+    grid-template-columns:1.1fr 1.3fr 1.3fr 1fr;
+    gap:10px;
+    padding:12px 0;
+    border-bottom:1px dashed var(--term-line);
+    font-size:0.88rem;
+    color:var(--term-fg);
+    align-items:center;
+  }
+  .terminal__row:last-child{ border-bottom:none; }
+  .terminal__row--head{
+    color:var(--term-dim);
+    font-size:0.7rem;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    padding-top:10px;
+  }
+  .terminal__sym{ color:var(--term-accent); font-weight:600; cursor:default; }
+  .terminal__chg{ font-weight:600; }
+  .terminal__chg.is-up{ color:var(--term-up); }
+  .terminal__chg.is-down{ color:var(--term-down); }
+  .terminal__row--empty{
+    grid-template-columns:1fr;
+    color:var(--term-dim);
+    font-style:italic;
+    text-align:center;
+  }
+  .terminal__foot{
+    display:flex;
+    justify-content:space-between;
+    padding:14px 18px;
+    border-top:1px solid var(--term-line);
+    font-size:0.74rem;
+    color:var(--term-dim);
+  }
+  @media (max-width:640px){
+    .terminal__row{ grid-template-columns:0.9fr 1fr 1fr 0.8fr; font-size:0.8rem; }
+    .terminal__path{ font-size:0.74rem; }
+  }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -710,6 +821,7 @@
       VARLIK
     </a>
     <nav class="nav__links" id="navLinks">
+      <a href="#terminal">Terminal</a>
       <a href="#haberler">Haberler</a>
       <a href="#gundem">Gündem</a>
       <a href="#kitaplar">Kitaplar</a>
@@ -750,6 +862,38 @@
           <li><span class="stat-strip__label">Yayımlanan Kitap</span><span class="stat-strip__fill"></span><span class="stat-strip__value">3</span></li>
           <li><span class="stat-strip__label">Yıllık Tecrübe</span><span class="stat-strip__fill"></span><span class="stat-strip__value">9 yıl</span></li>
         </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- CANLI VERİ TERMİNALİ -->
+  <section id="terminal">
+    <div class="wrap">
+      <div class="section__head">
+        <div>
+          <p class="eyebrow">Canlı Veri</p>
+          <h2>Canlı Veri Terminali</h2>
+        </div>
+        <button id="terminalRefresh" class="btn btn--outline btn--small">Yenile</button>
+      </div>
+
+      <div class="terminal">
+        <div class="terminal__bar">
+          <span class="terminal__dot terminal__dot--r"></span>
+          <span class="terminal__dot terminal__dot--y"></span>
+          <span class="terminal__dot terminal__dot--g"></span>
+          <span class="terminal__path">varlik@piyasa:~$ <span class="terminal__cursor">_</span></span>
+        </div>
+        <div class="terminal__body">
+          <div class="terminal__row terminal__row--head">
+            <span>Varlık</span><span>USD</span><span>TRY</span><span>24s</span>
+          </div>
+          <div id="terminalRows"></div>
+        </div>
+        <div class="terminal__foot">
+          <span id="terminalStatus">Yükleniyor…</span>
+          <span id="terminalUpdated"></span>
+        </div>
       </div>
     </div>
   </section>
@@ -949,19 +1093,36 @@
     </div>
   </section>
 
-  <!-- NEWSLETTER -->
+  <!-- KAYIT / NEWSLETTER -->
   <section class="newsletter" id="bulten">
     <div class="wrap newsletter__inner">
       <div>
         <h2>Haftalık Piyasa Notu, e-postanıza gelsin.</h2>
-        <p>Her hafta tek bir e-posta; gündemdeki en önemli ekonomik gelişme ve ne anlama geldiği.</p>
+        <p>E-posta adresinizi doğrulayın, her hafta tek bir e-posta alın: gündemdeki en önemli ekonomik gelişme ve ne anlama geldiği.</p>
       </div>
-      <div>
-        <form id="newsletterForm">
-          <input type="email" placeholder="e-posta adresiniz" required>
-          <button type="submit" class="btn btn--cream-outline btn--small">Katıl</button>
-        </form>
-        <p class="newsletter__msg" id="newsletterMsg"></p>
+      <div class="signup" id="signupWidget">
+
+        <div id="signupStep1">
+          <form id="signupEmailForm">
+            <input type="email" id="signupEmail" placeholder="e-posta adresiniz" required>
+            <button type="submit" class="btn btn--cream-outline btn--small">Kod Gönder</button>
+          </form>
+        </div>
+
+        <div id="signupStep2" hidden>
+          <p class="signup__hint">"<span id="signupEmailEcho"></span>" adresine gönderdiğimiz 6 haneli kodu girin.</p>
+          <form id="signupCodeForm">
+            <input type="text" id="signupCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" required>
+            <button type="submit" class="btn btn--cream-outline btn--small">Doğrula</button>
+          </form>
+          <button type="button" id="signupResend" class="signup__resend">Kodu tekrar gönder</button>
+        </div>
+
+        <div id="signupStep3" hidden>
+          <p class="signup__success">✓ Kayıt tamamlandı, teşekkürler. Bültenimize katıldınız.</p>
+        </div>
+
+        <p class="newsletter__msg" id="signupMsg"></p>
       </div>
     </div>
   </section>
@@ -1040,12 +1201,133 @@
     document.querySelectorAll('.entry, .book').forEach(el => el.classList.add('is-visible'));
   }
 
-  const form = document.getElementById('newsletterForm');
-  const msg = document.getElementById('newsletterMsg');
-  form.addEventListener('submit', (e) => {
+  /* ===== KAYIT / E-POSTA DOĞRULAMA =====
+     EmailJS (anahtarsız bir backend gerektirmeyen istemci taraflı e-posta
+     servisi) kullanılıyor. Çalışması için üç değeri kendi EmailJS
+     hesabınızdan alıp aşağıya yazmanız (veya bana vermeniz) gerekiyor:
+     1) Public Key  → EmailJS Dashboard > Account > General
+     2) Service ID  → EmailJS Dashboard > Email Services (Gmail/Outlook vb. bağladığınız servis)
+     3) Template ID → EmailJS Dashboard > Email Templates (şablonunuzda
+        {{to_email}} ve {{passcode}} adlı iki değişken kullanmanız gerekiyor)
+     Bu üç değer doldurulana kadar "Kod Gönder" butonu çalışmaz ve
+     kullanıcıya bunun henüz kurulmadığını söyler — sahte bir başarı
+     mesajı göstermez. */
+  const EMAILJS_PUBLIC_KEY = 'w7csLa460-xGyQ_b0';
+  const EMAILJS_SERVICE_ID = 'service_mmsvlmd';
+  const EMAILJS_TEMPLATE_ID = 'template_wgigd2i';
+  const EMAILJS_READY = ![EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID].some((v) => v.startsWith('YOUR_'));
+
+  if (EMAILJS_READY && window.emailjs) {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  }
+
+  const signupStep1 = document.getElementById('signupStep1');
+  const signupStep2 = document.getElementById('signupStep2');
+  const signupStep3 = document.getElementById('signupStep3');
+  const signupEmailForm = document.getElementById('signupEmailForm');
+  const signupCodeForm = document.getElementById('signupCodeForm');
+  const signupEmailInput = document.getElementById('signupEmail');
+  const signupCodeInput = document.getElementById('signupCode');
+  const signupEmailEcho = document.getElementById('signupEmailEcho');
+  const signupResend = document.getElementById('signupResend');
+  const signupMsg = document.getElementById('signupMsg');
+
+  let pendingEmail = '';
+  let pendingCode = '';
+  let codeExpiresAt = 0;
+  let resendCooldownTimer = null;
+
+  function generateCode() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
+
+  function setSignupMsg(text) {
+    signupMsg.textContent = text || '';
+  }
+
+  function startResendCooldown(seconds) {
+    let remaining = seconds;
+    signupResend.disabled = true;
+    signupResend.textContent = 'Kodu tekrar gönder (' + remaining + 's)';
+    clearInterval(resendCooldownTimer);
+    resendCooldownTimer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(resendCooldownTimer);
+        signupResend.disabled = false;
+        signupResend.textContent = 'Kodu tekrar gönder';
+      } else {
+        signupResend.textContent = 'Kodu tekrar gönder (' + remaining + 's)';
+      }
+    }, 1000);
+  }
+
+  async function sendVerificationCode(email) {
+    const code = generateCode();
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: email,
+      passcode: code
+    });
+    pendingEmail = email;
+    pendingCode = code;
+    codeExpiresAt = Date.now() + 10 * 60 * 1000;
+  }
+
+  signupEmailForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    msg.textContent = 'Kaydoldunuz, teşekkürler. Bir sonraki not Pazartesi günü gelecek.';
-    form.reset();
+    const email = signupEmailInput.value.trim();
+
+    if (!EMAILJS_READY) {
+      setSignupMsg('Bu form henüz bağlanmadı: site sahibinin EmailJS hesabı kurulması gerekiyor.');
+      return;
+    }
+
+    const submitBtn = signupEmailForm.querySelector('button');
+    submitBtn.disabled = true;
+    setSignupMsg('Kod gönderiliyor…');
+
+    try {
+      await sendVerificationCode(email);
+      signupEmailEcho.textContent = email;
+      signupStep1.hidden = true;
+      signupStep2.hidden = false;
+      setSignupMsg('');
+      startResendCooldown(30);
+    } catch (err) {
+      setSignupMsg('Kod gönderilemedi. Lütfen e-posta adresinizi kontrol edip tekrar deneyin.');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  signupResend.addEventListener('click', async () => {
+    setSignupMsg('Kod yeniden gönderiliyor…');
+    try {
+      await sendVerificationCode(pendingEmail);
+      setSignupMsg('Yeni kod gönderildi.');
+      startResendCooldown(30);
+    } catch (err) {
+      setSignupMsg('Kod gönderilemedi, lütfen tekrar deneyin.');
+    }
+  });
+
+  signupCodeForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const entered = signupCodeInput.value.trim();
+
+    if (Date.now() > codeExpiresAt) {
+      setSignupMsg('Kodun süresi doldu, lütfen yeni kod isteyin.');
+      return;
+    }
+    if (entered !== pendingCode) {
+      setSignupMsg('Kod yanlış, lütfen tekrar deneyin.');
+      return;
+    }
+
+    clearInterval(resendCooldownTimer);
+    signupStep2.hidden = true;
+    signupStep3.hidden = false;
+    setSignupMsg('');
   });
 
   /* ===== GÜNCEL HABER AKIŞI =====
@@ -1194,6 +1476,87 @@
 
   newsRefresh.addEventListener('click', loadNews);
   loadNews();
+
+  /* ===== CANLI VERİ TERMİNALİ =====
+     Kaynak: CoinGecko'nun anahtarsız genel API'si (Keyless Public API).
+     Tarayıcıdan doğrudan çağrılabiliyor, CORS sorunu yok. Dakikada
+     birkaç çağrı sınırı var; bu yüzden otomatik yenileme 60 saniyede bir. */
+  const TERMINAL_IDS = ['bitcoin', 'ethereum', 'tether', 'solana'];
+  const TERMINAL_LABELS = { bitcoin: 'BTC', ethereum: 'ETH', tether: 'USDT', solana: 'SOL' };
+  const TERMINAL_NAMES = { bitcoin: 'Bitcoin', ethereum: 'Ethereum', tether: 'Tether (Dolar göstergesi)', solana: 'Solana' };
+
+  const terminalRows = document.getElementById('terminalRows');
+  const terminalStatus = document.getElementById('terminalStatus');
+  const terminalUpdated = document.getElementById('terminalUpdated');
+  const terminalRefresh = document.getElementById('terminalRefresh');
+
+  function formatTerminalNum(n) {
+    if (n === undefined || n === null) return '—';
+    const digits = n >= 1 ? 2 : 4;
+    return n.toLocaleString('tr-TR', { maximumFractionDigits: digits, minimumFractionDigits: digits });
+  }
+
+  function renderTerminal(data) {
+    terminalRows.innerHTML = '';
+    TERMINAL_IDS.forEach((id) => {
+      const d = data[id];
+      if (!d) return;
+      const row = document.createElement('div');
+      row.className = 'terminal__row';
+
+      const name = document.createElement('span');
+      name.className = 'terminal__sym';
+      name.textContent = TERMINAL_LABELS[id];
+      name.title = TERMINAL_NAMES[id];
+
+      const usd = document.createElement('span');
+      usd.textContent = '$' + formatTerminalNum(d.usd);
+
+      const tryEl = document.createElement('span');
+      tryEl.textContent = '\u20ba' + formatTerminalNum(d.try);
+
+      const chg = document.createElement('span');
+      const change = d.usd_24h_change || 0;
+      const isUp = change >= 0;
+      chg.className = 'terminal__chg ' + (isUp ? 'is-up' : 'is-down');
+      chg.textContent = (isUp ? '\u25b2 ' : '\u25bc ') + Math.abs(change).toFixed(2) + '%';
+
+      row.append(name, usd, tryEl, chg);
+      terminalRows.appendChild(row);
+    });
+
+    terminalStatus.textContent = 'Canlı • CoinGecko';
+    terminalUpdated.textContent = 'Güncellendi: ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderTerminalError() {
+    terminalRows.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'terminal__row terminal__row--empty';
+    row.textContent = 'Veri ak\u0131\u015f\u0131na \u015fu anda eri\u015filemiyor.';
+    terminalRows.appendChild(row);
+
+    terminalStatus.textContent = 'Bağlantı kurulamadı';
+    terminalUpdated.textContent = 'Son deneme: ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function loadTerminal() {
+    terminalStatus.textContent = 'Yükleniyor…';
+    try {
+      const url = 'https://api.coingecko.com/api/v3/simple/price?ids=' + TERMINAL_IDS.join(',') + '&vs_currencies=usd,try&include_24hr_change=true';
+      const res = await fetchWithTimeout(url, 8000);
+      if (!res.ok) throw new Error('coingecko http ' + res.status);
+      const data = await res.json();
+      if (!data || !Object.keys(data).length) throw new Error('coingecko empty');
+      renderTerminal(data);
+    } catch (err) {
+      renderTerminalError();
+    }
+  }
+
+  terminalRefresh.addEventListener('click', loadTerminal);
+  loadTerminal();
+  setInterval(loadTerminal, 60000);
 </script>
 
 </body>
